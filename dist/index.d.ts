@@ -8,7 +8,7 @@ declare type QueryArgs<Variables extends object = OperationVariables, Data = any
 declare type AtomWithQueryAction = {
     type: 'refetch';
 };
-declare const atomsWithQuery: <Data, Variables extends object = OperationVariables>(getArgs: (get: Getter) => QueryArgs<Variables, Data>, getClient?: (get: Getter) => ApolloClient<unknown>, onError?: ((result: ApolloQueryResult<Data>) => void) | undefined) => WritableAtom<ApolloQueryResult<Data> | undefined, AtomWithQueryAction, void>;
+declare const atomWithQuery: <Data, Variables extends object = OperationVariables>(getArgs: (get: Getter) => QueryArgs<Variables, Data>, getClient?: (get: Getter) => ApolloClient<unknown>, onError?: ((result: ApolloQueryResult<Data>) => void) | undefined) => WritableAtom<ApolloQueryResult<Data> | undefined, AtomWithQueryAction, void>;
 
 declare type Action = {
     readonly type: 'refetch';
@@ -18,4 +18,4 @@ declare function atomsWithSubscription<Data, Variables extends object = Operatio
     statusAtom: WritableAtom<SubscriptionResult<Data, Variables> | null, Action>
 ];
 
-export { atomsWithQuery, atomsWithSubscription, clientAtom };
+export { atomWithQuery, atomsWithSubscription, clientAtom };

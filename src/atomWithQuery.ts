@@ -19,7 +19,7 @@ type AtomWithQueryAction = {
   type: 'refetch'
 }
 
-export const atomsWithQuery = <
+export const atomWithQuery = <
   Data,
   Variables extends object = OperationVariables
 >(

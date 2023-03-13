@@ -1,3 +1,3 @@
 export * from './clientAtom'
-export * from './atomsWithQuery'
+export * from './atomWithQuery'
 export * from './atomsWithSubscription'

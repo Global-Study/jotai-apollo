@@ -16,7 +16,7 @@ var clientAtom = atom(() => {
   return defaultClient;
 });
 
-// src/atomsWithQuery.ts
+// src/atomWithQuery.ts
 import { atom as atom3 } from "jotai";
 import { atomWithObservable as atomWithObservable2 } from "jotai/utils";
 
@@ -54,8 +54,8 @@ var createAtoms = (getArgs, getClient, execute, handleAction) => {
   return [dataAtom, statusAtom];
 };
 
-// src/atomsWithQuery.ts
-var atomsWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => {
+// src/atomWithQuery.ts
+var atomWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => {
   const refreshAtom = atomWithIncrement(0);
   const handleActionAtom = atom3(null, (_get, set, action) => {
     if (action.type === "refetch") {
@@ -96,7 +96,7 @@ function atomsWithSubscription(getArgs, getClient = (get) => get(clientAtom)) {
   });
 }
 export {
-  atomsWithQuery,
+  atomWithQuery,
   atomsWithSubscription,
   clientAtom
 };

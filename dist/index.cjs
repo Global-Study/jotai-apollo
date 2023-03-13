@@ -24,7 +24,7 @@ var __toModule = (module2) => {
 
 // src/index.ts
 __export(exports, {
-  atomsWithQuery: () => atomsWithQuery,
+  atomWithQuery: () => atomWithQuery,
   atomsWithSubscription: () => atomsWithSubscription,
   clientAtom: () => clientAtom
 });
@@ -44,7 +44,7 @@ var clientAtom = (0, import_jotai.atom)(() => {
   return defaultClient;
 });
 
-// src/atomsWithQuery.ts
+// src/atomWithQuery.ts
 var import_jotai3 = __toModule(require("jotai"));
 var import_utils2 = __toModule(require("jotai/utils"));
 
@@ -82,8 +82,8 @@ var createAtoms = (getArgs, getClient, execute, handleAction) => {
   return [dataAtom, statusAtom];
 };
 
-// src/atomsWithQuery.ts
-var atomsWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => {
+// src/atomWithQuery.ts
+var atomWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => {
   const refreshAtom = atomWithIncrement(0);
   const handleActionAtom = (0, import_jotai3.atom)(null, (_get, set, action) => {
     if (action.type === "refetch") {
@@ -125,7 +125,7 @@ function atomsWithSubscription(getArgs, getClient = (get) => get(clientAtom)) {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  atomsWithQuery,
+  atomWithQuery,
   atomsWithSubscription,
   clientAtom
 });

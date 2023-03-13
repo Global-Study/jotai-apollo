@@ -16,15 +16,19 @@ var clientAtom = atom(() => {
   return defaultClient;
 });
 
+// src/atomsWithQuery.ts
+import { atom as atom3 } from "jotai";
+import { atomWithObservable as atomWithObservable2 } from "jotai/utils";
+
 // src/common.ts
 import { atom as atom2 } from "jotai";
 import { atomWithObservable } from "jotai/utils";
-var createRefreshAtom = () => {
-  const internalAtom = atom2(0);
+var atomWithIncrement = (initialValue) => {
+  const internalAtom = atom2(initialValue);
   return atom2((get) => get(internalAtom), (_get, set) => set(internalAtom, (c) => c + 1));
 };
 var createAtoms = (getArgs, getClient, execute, handleAction) => {
-  const refreshAtom = createRefreshAtom();
+  const refreshAtom = atomWithIncrement(0);
   const handleActionAtom = atom2(null, (get, set, action) => {
     const client = getClient(get);
     const refresh = () => set(refreshAtom);
@@ -51,13 +55,33 @@ var createAtoms = (getArgs, getClient, execute, handleAction) => {
 };
 
 // src/atomsWithQuery.ts
-var atomsWithQuery = (getArgs, getClient = (get) => get(clientAtom)) => {
-  return createAtoms(getArgs, getClient, (client, args) => client.watchQuery(args), (action, _client, refresh) => {
+var atomsWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => {
+  const refreshAtom = atomWithIncrement(0);
+  const handleActionAtom = atom3(null, (_get, set, action) => {
     if (action.type === "refetch") {
-      refresh();
-      return;
+      set(refreshAtom);
     }
   });
+  const sourceAtom = atomWithObservable2((get) => {
+    get(refreshAtom);
+    const args = getArgs(get);
+    const client = getClient(get);
+    return client.watchQuery(args);
+  }, { initialValue: null });
+  return atom3((get) => {
+    const result = get(sourceAtom);
+    if (result === null) {
+      return void 0;
+    }
+    if (result.error) {
+      if (onError) {
+        onError(result);
+      } else {
+        throw result.error;
+      }
+    }
+    return result;
+  }, (_get, set, action) => set(handleActionAtom, action));
 };
 
 // src/atomsWithSubscription.ts

@@ -44,15 +44,19 @@ var clientAtom = (0, import_jotai.atom)(() => {
   return defaultClient;
 });
 
+// src/atomsWithQuery.ts
+var import_jotai3 = __toModule(require("jotai"));
+var import_utils2 = __toModule(require("jotai/utils"));
+
 // src/common.ts
 var import_jotai2 = __toModule(require("jotai"));
 var import_utils = __toModule(require("jotai/utils"));
-var createRefreshAtom = () => {
-  const internalAtom = (0, import_jotai2.atom)(0);
+var atomWithIncrement = (initialValue) => {
+  const internalAtom = (0, import_jotai2.atom)(initialValue);
   return (0, import_jotai2.atom)((get) => get(internalAtom), (_get, set) => set(internalAtom, (c) => c + 1));
 };
 var createAtoms = (getArgs, getClient, execute, handleAction) => {
-  const refreshAtom = createRefreshAtom();
+  const refreshAtom = atomWithIncrement(0);
   const handleActionAtom = (0, import_jotai2.atom)(null, (get, set, action) => {
     const client = getClient(get);
     const refresh = () => set(refreshAtom);
@@ -79,13 +83,33 @@ var createAtoms = (getArgs, getClient, execute, handleAction) => {
 };
 
 // src/atomsWithQuery.ts
-var atomsWithQuery = (getArgs, getClient = (get) => get(clientAtom)) => {
-  return createAtoms(getArgs, getClient, (client, args) => client.watchQuery(args), (action, _client, refresh) => {
+var atomsWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => {
+  const refreshAtom = atomWithIncrement(0);
+  const handleActionAtom = (0, import_jotai3.atom)(null, (_get, set, action) => {
     if (action.type === "refetch") {
-      refresh();
-      return;
+      set(refreshAtom);
     }
   });
+  const sourceAtom = (0, import_utils2.atomWithObservable)((get) => {
+    get(refreshAtom);
+    const args = getArgs(get);
+    const client = getClient(get);
+    return client.watchQuery(args);
+  }, { initialValue: null });
+  return (0, import_jotai3.atom)((get) => {
+    const result = get(sourceAtom);
+    if (result === null) {
+      return void 0;
+    }
+    if (result.error) {
+      if (onError) {
+        onError(result);
+      } else {
+        throw result.error;
+      }
+    }
+    return result;
+  }, (_get, set, action) => set(handleActionAtom, action));
 };
 
 // src/atomsWithSubscription.ts

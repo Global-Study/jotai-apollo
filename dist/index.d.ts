@@ -8,7 +8,7 @@ declare type QueryArgs<Variables extends object = OperationVariables, Data = any
 declare type AtomWithQueryAction = {
     type: 'refetch';
 };
-declare const atomsWithQuery: <Data, Variables extends object = OperationVariables>(getArgs: (get: Getter) => QueryArgs<Variables, Data>, getClient?: (get: Getter) => ApolloClient<unknown>) => readonly [dataAtom: WritableAtom<Data | undefined, AtomWithQueryAction, void>, statusAtom: WritableAtom<ApolloQueryResult<Data> | null, AtomWithQueryAction, void>];
+declare const atomsWithQuery: <Data, Variables extends object = OperationVariables>(getArgs: (get: Getter) => QueryArgs<Variables, Data>, getClient?: (get: Getter) => ApolloClient<unknown>, onError?: ((result: ApolloQueryResult<Data>) => void) | undefined) => WritableAtom<ApolloQueryResult<Data> | undefined, AtomWithQueryAction, void>;
 
 declare type Action = {
     readonly type: 'refetch';

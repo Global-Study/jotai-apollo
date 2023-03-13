@@ -15,8 +15,8 @@ export type Observable<T> = {
   subscribe(observer: Partial<Observer<T>>): { unsubscribe: () => void }
 }
 
-const createRefreshAtom = () => {
-  const internalAtom = atom(0)
+export const atomWithIncrement = (initialValue: number) => {
+  const internalAtom = atom(initialValue)
 
   return atom(
     (get) => get(internalAtom),
@@ -40,7 +40,7 @@ export const createAtoms = <
     refresh: () => void
   ) => ActionResult
 ) => {
-  const refreshAtom = createRefreshAtom()
+  const refreshAtom = atomWithIncrement(0)
 
   const handleActionAtom = atom(null, (get, set, action: Action) => {
     const client = getClient(get)

@@ -4,10 +4,11 @@ import {
   QueryOptions,
   ApolloQueryResult,
 } from '@apollo/client'
-import { Getter, WritableAtom } from 'jotai'
+import { atom, Getter, WritableAtom } from 'jotai'
+import { atomWithObservable } from 'jotai/utils'
 
 import { clientAtom } from './clientAtom'
-import { createAtoms } from './common'
+import { atomWithIncrement } from './common'
 
 type QueryArgs<
   Variables extends object = OperationVariables,
@@ -23,20 +24,49 @@ export const atomsWithQuery = <
   Variables extends object = OperationVariables
 >(
   getArgs: (get: Getter) => QueryArgs<Variables, Data>,
-  getClient: (get: Getter) => ApolloClient<unknown> = (get) => get(clientAtom)
-): readonly [
-  dataAtom: WritableAtom<Data | undefined, AtomWithQueryAction>,
-  statusAtom: WritableAtom<ApolloQueryResult<Data> | null, AtomWithQueryAction>
-] => {
-  return createAtoms(
-    getArgs,
-    getClient,
-    (client, args) => client.watchQuery(args),
-    (action: AtomWithQueryAction, _client, refresh) => {
+  getClient: (get: Getter) => ApolloClient<unknown> = (get) => get(clientAtom),
+  onError?: (result: ApolloQueryResult<Data>) => void
+): WritableAtom<ApolloQueryResult<Data> | undefined, AtomWithQueryAction> => {
+  const refreshAtom = atomWithIncrement(0)
+
+  const handleActionAtom = atom(
+    null,
+    (_get, set, action: AtomWithQueryAction) => {
       if (action.type === 'refetch') {
-        refresh()
-        return
+        set(refreshAtom)
       }
     }
+  )
+
+  const sourceAtom = atomWithObservable(
+    (get) => {
+      get(refreshAtom)
+      const args = getArgs(get)
+      const client = getClient(get)
+
+      return client.watchQuery(args)
+    },
+    { initialValue: null }
+  )
+
+  return atom(
+    (get) => {
+      const result = get(sourceAtom)
+
+      if (result === null) {
+        return undefined
+      }
+
+      if (result.error) {
+        if (onError) {
+          onError(result)
+        } else {
+          throw result.error
+        }
+      }
+
+      return result
+    },
+    (_get, set, action: AtomWithQueryAction) => set(handleActionAtom, action)
   )
 }

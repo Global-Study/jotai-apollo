@@ -7,7 +7,6 @@ node_modules
 coverage
 
 # production
-dist
 build
 
 # dotenv environment variables file

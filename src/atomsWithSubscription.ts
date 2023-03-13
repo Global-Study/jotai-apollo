@@ -20,8 +20,8 @@ export function atomsWithSubscription<
   getArgs: (get: Getter) => SubscriptionOptions<Variables, Data>,
   getClient: (get: Getter) => ApolloClient<any> = (get) => get(clientAtom)
 ): readonly [
-  dataAtom: WritableAtom<Data, Action>,
-  statusAtom: WritableAtom<SubscriptionResult<Data, Variables>, Action>
+  dataAtom: WritableAtom<Data | undefined, Action>,
+  statusAtom: WritableAtom<SubscriptionResult<Data, Variables> | null, Action>
 ] {
   return createAtoms(
     (get) => getArgs(get),

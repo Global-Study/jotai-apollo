@@ -43,7 +43,7 @@
     }
   },
   "devDependencies": {
-    "@apollo/client": "^3.7.0",
+    "@apollo/client": "3.7.1",
     "@swc/core": "^1.2.114",
     "@swc/jest": "^0.2.11",
     "@testing-library/react": "^12.1.2",
@@ -55,7 +55,7 @@
     "graphql": "^16.0.1",
     "husky": "^7.0.4",
     "jest": "^27.4.2",
-    "jotai": "^1.8.6",
+    "jotai": "^1.11.1",
     "lint-staged": "^12.1.2",
     "prettier": "^2.5.0",
     "react": "^17.0.2",

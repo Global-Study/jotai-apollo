@@ -30,11 +30,16 @@ __export(exports, {
 });
 
 // src/clientAtom.ts
-var import_jotai = __toModule(require("jotai"));
 var import_client = __toModule(require("@apollo/client"));
+var import_jotai = __toModule(require("jotai"));
 var DEFAULT_URL = typeof process === "object" && process.env.JOTAI_APOLLO_DEFAULT_URL || "/graphql";
 var defaultClient = null;
-var clientAtom = (0, import_jotai.atom)(() => {
+var customClientAtom = (0, import_jotai.atom)(null);
+var clientAtom = (0, import_jotai.atom)((get) => {
+  const customClient = get(customClientAtom);
+  if (customClient) {
+    return customClient;
+  }
   if (!defaultClient) {
     defaultClient = new import_client.ApolloClient({
       uri: DEFAULT_URL,
@@ -42,6 +47,8 @@ var clientAtom = (0, import_jotai.atom)(() => {
     });
   }
   return defaultClient;
+}, (_get, set, client) => {
+  set(customClientAtom, client);
 });
 
 // src/atomWithQuery.ts

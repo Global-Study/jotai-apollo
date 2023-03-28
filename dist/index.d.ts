@@ -1,8 +1,8 @@
 import * as jotai from 'jotai';
 import { Getter, WritableAtom } from 'jotai';
-import { ApolloClient, NormalizedCacheObject, OperationVariables, ApolloQueryResult, QueryOptions, SubscriptionOptions, SubscriptionResult } from '@apollo/client';
+import { ApolloClient, OperationVariables, ApolloQueryResult, QueryOptions, SubscriptionOptions, SubscriptionResult } from '@apollo/client';
 
-declare const clientAtom: jotai.Atom<ApolloClient<NormalizedCacheObject>>;
+declare const clientAtom: jotai.WritableAtom<ApolloClient<unknown>, ApolloClient<unknown>, void>;
 
 declare type QueryArgs<Variables extends object = OperationVariables, Data = any> = QueryOptions<Variables, Data>;
 declare type AtomWithQueryAction = {

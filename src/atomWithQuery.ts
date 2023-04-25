@@ -26,7 +26,11 @@ export const atomWithQuery = <
   getArgs: (get: Getter) => QueryArgs<Variables, Data>,
   getClient: (get: Getter) => ApolloClient<unknown> = (get) => get(clientAtom),
   onError?: (result: ApolloQueryResult<Data>) => void
-): WritableAtom<ApolloQueryResult<Data> | undefined, AtomWithQueryAction> => {
+): WritableAtom<
+  ApolloQueryResult<Data> | undefined,
+  [AtomWithQueryAction],
+  void
+> => {
   const refreshAtom = atomWithIncrement(0)
 
   const handleActionAtom = atom(

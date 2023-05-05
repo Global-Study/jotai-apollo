@@ -24,8 +24,11 @@ var clientAtom = atom((get) => {
 });
 
 // src/atomWithQuery.ts
-import { atom as atom3 } from "jotai";
+import {
+  NetworkStatus
+} from "@apollo/client";
 import { atomWithObservable as atomWithObservable2 } from "jotai/utils";
+import { atom as atom3 } from "jotai";
 
 // src/common.ts
 import { atom as atom2 } from "jotai";
@@ -73,7 +76,7 @@ var atomWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => 
     get(refreshAtom);
     const args = getArgs(get);
     const client = getClient(get);
-    return client.watchQuery(args);
+    return wrapObservable(client.watchQuery(args));
   }, { initialValue: null });
   return atom3((get) => {
     const result = get(sourceAtom);
@@ -90,6 +93,36 @@ var atomWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => 
     return result;
   }, (_get, set, action) => set(handleActionAtom, action));
 };
+var wrapObservable = (observableQuery) => ({
+  subscribe: (observer) => {
+    let subscription = observableQuery.subscribe(onNext, onError);
+    function onNext(result) {
+      var _a;
+      (_a = observer.next) == null ? void 0 : _a.call(observer, result);
+    }
+    function onError(error) {
+      var _a;
+      const last = observableQuery.getLastResult();
+      subscription.unsubscribe();
+      try {
+        observableQuery.resetLastResults();
+        subscription = observableQuery.subscribe(onNext, onError);
+      } finally {
+        observableQuery["last"] = last;
+      }
+      const errorResult = {
+        data: observableQuery.getCurrentResult().data,
+        error,
+        loading: false,
+        networkStatus: NetworkStatus.error
+      };
+      (_a = observer.next) == null ? void 0 : _a.call(observer, errorResult);
+    }
+    return {
+      unsubscribe: () => subscription.unsubscribe()
+    };
+  }
+});
 
 // src/atomsWithSubscription.ts
 function atomsWithSubscription(getArgs, getClient = (get) => get(clientAtom)) {

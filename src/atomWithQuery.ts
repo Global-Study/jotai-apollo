@@ -3,9 +3,12 @@ import {
   OperationVariables,
   QueryOptions,
   ApolloQueryResult,
+  ObservableQuery,
+  ApolloError,
+  NetworkStatus,
 } from '@apollo/client'
-import { atom, Getter, WritableAtom } from 'jotai'
 import { atomWithObservable } from 'jotai/utils'
+import { atom, Getter, WritableAtom } from 'jotai'
 
 import { clientAtom } from './clientAtom'
 import { atomWithIncrement } from './common'
@@ -25,9 +28,9 @@ export const atomWithQuery = <
 >(
   getArgs: (get: Getter) => QueryArgs<Variables, Data>,
   getClient: (get: Getter) => ApolloClient<unknown> = (get) => get(clientAtom),
-  onError?: (result: ApolloQueryResult<Data>) => void
+  onError?: (result: ApolloQueryResult<Data | undefined>) => void
 ): WritableAtom<
-  ApolloQueryResult<Data> | undefined,
+  ApolloQueryResult<Data | undefined> | undefined,
   [AtomWithQueryAction],
   void
 > => {
@@ -48,7 +51,7 @@ export const atomWithQuery = <
       const args = getArgs(get)
       const client = getClient(get)
 
-      return client.watchQuery(args)
+      return wrapObservable(client.watchQuery(args))
     },
     { initialValue: null }
   )
@@ -74,3 +77,54 @@ export const atomWithQuery = <
     (_get, set, action: AtomWithQueryAction) => set(handleActionAtom, action)
   )
 }
+
+type Observer<T> = {
+  next: (value: T) => void
+  error: (error: unknown) => void
+  complete: () => void
+}
+
+type Subscription = {
+  unsubscribe: () => void
+}
+
+const wrapObservable = <TData = unknown, TVariables = OperationVariables>(
+  observableQuery: ObservableQuery<TData, TVariables>
+) => ({
+  subscribe: (
+    observer: Partial<Observer<ApolloQueryResult<TData | undefined>>>
+  ): Subscription => {
+    let subscription = observableQuery.subscribe(onNext, onError)
+
+    function onNext(result: ApolloQueryResult<TData>) {
+      observer.next?.(result)
+    }
+
+    function onError(error: unknown) {
+      const last = observableQuery.getLastResult()
+      subscription.unsubscribe()
+
+      try {
+        observableQuery.resetLastResults()
+        subscription = observableQuery.subscribe(onNext, onError)
+      } finally {
+        // eslint-disable-next-line no-param-reassign, dot-notation
+        observableQuery['last'] = last
+      }
+
+      const errorResult: ApolloQueryResult<TData | undefined> = {
+        data: observableQuery.getCurrentResult().data,
+        error: error as ApolloError,
+        loading: false,
+        networkStatus: NetworkStatus.error,
+      }
+
+      // Errors are returned as part of the result
+      observer.next?.(errorResult)
+    }
+
+    return {
+      unsubscribe: () => subscription.unsubscribe(),
+    }
+  },
+})

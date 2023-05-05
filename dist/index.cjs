@@ -52,8 +52,9 @@ var clientAtom = (0, import_jotai.atom)((get) => {
 });
 
 // src/atomWithQuery.ts
-var import_jotai3 = __toModule(require("jotai"));
+var import_client2 = __toModule(require("@apollo/client"));
 var import_utils2 = __toModule(require("jotai/utils"));
+var import_jotai3 = __toModule(require("jotai"));
 
 // src/common.ts
 var import_jotai2 = __toModule(require("jotai"));
@@ -101,7 +102,7 @@ var atomWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => 
     get(refreshAtom);
     const args = getArgs(get);
     const client = getClient(get);
-    return client.watchQuery(args);
+    return wrapObservable(client.watchQuery(args));
   }, { initialValue: null });
   return (0, import_jotai3.atom)((get) => {
     const result = get(sourceAtom);
@@ -118,6 +119,36 @@ var atomWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => 
     return result;
   }, (_get, set, action) => set(handleActionAtom, action));
 };
+var wrapObservable = (observableQuery) => ({
+  subscribe: (observer) => {
+    let subscription = observableQuery.subscribe(onNext, onError);
+    function onNext(result) {
+      var _a;
+      (_a = observer.next) == null ? void 0 : _a.call(observer, result);
+    }
+    function onError(error) {
+      var _a;
+      const last = observableQuery.getLastResult();
+      subscription.unsubscribe();
+      try {
+        observableQuery.resetLastResults();
+        subscription = observableQuery.subscribe(onNext, onError);
+      } finally {
+        observableQuery["last"] = last;
+      }
+      const errorResult = {
+        data: observableQuery.getCurrentResult().data,
+        error,
+        loading: false,
+        networkStatus: import_client2.NetworkStatus.error
+      };
+      (_a = observer.next) == null ? void 0 : _a.call(observer, errorResult);
+    }
+    return {
+      unsubscribe: () => subscription.unsubscribe()
+    };
+  }
+});
 
 // src/atomsWithSubscription.ts
 function atomsWithSubscription(getArgs, getClient = (get) => get(clientAtom)) {

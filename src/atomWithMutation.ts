@@ -10,8 +10,8 @@ import { Getter, atom } from 'jotai'
 import { clientAtom } from './clientAtom'
 
 export const atomWithMutation = <
-  Data = any,
-  Variables extends OperationVariables = OperationVariables,
+  Data,
+  Variables extends OperationVariables,
   Context extends Record<string, any> = DefaultContext
 >(
   mutation: DocumentNode,

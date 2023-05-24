@@ -27,8 +27,8 @@ export const atomWithQuery = <
   Variables extends object = OperationVariables
 >(
   getArgs: (get: Getter) => QueryArgs<Variables, Data>,
-  getClient: (get: Getter) => ApolloClient<unknown> = (get) => get(clientAtom),
-  onError?: (result: ApolloQueryResult<Data | undefined>) => void
+  onError?: (result: ApolloQueryResult<Data | undefined>) => void,
+  getClient: (get: Getter) => ApolloClient<unknown> = (get) => get(clientAtom)
 ): WritableAtom<
   ApolloQueryResult<Data | undefined> | undefined,
   [AtomWithQueryAction],
@@ -88,7 +88,10 @@ type Subscription = {
   unsubscribe: () => void
 }
 
-const wrapObservable = <TData = unknown, TVariables = OperationVariables>(
+const wrapObservable = <
+  TData = unknown,
+  TVariables extends OperationVariables = OperationVariables
+>(
   observableQuery: ObservableQuery<TData, TVariables>
 ) => ({
   subscribe: (

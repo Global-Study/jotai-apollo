@@ -1,9 +1,26 @@
 var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
 var __export = (target, all) => {
   __markAsModule(target);
@@ -24,6 +41,7 @@ var __toModule = (module2) => {
 
 // src/index.ts
 __export(exports, {
+  atomWithMutation: () => atomWithMutation,
   atomWithQuery: () => atomWithQuery,
   atomsWithSubscription: () => atomsWithSubscription,
   clientAtom: () => clientAtom
@@ -91,7 +109,7 @@ var createAtoms = (getArgs, getClient, execute, handleAction) => {
 };
 
 // src/atomWithQuery.ts
-var atomWithQuery = (getArgs, getClient = (get) => get(clientAtom), onError) => {
+var atomWithQuery = (getArgs, onError, getClient = (get) => get(clientAtom)) => {
   const refreshAtom = atomWithIncrement(0);
   const handleActionAtom = (0, import_jotai3.atom)(null, (_get, set, action) => {
     if (action.type === "refetch") {
@@ -150,6 +168,25 @@ var wrapObservable = (observableQuery) => ({
   }
 });
 
+// src/atomWithMutation.ts
+var import_jotai4 = __toModule(require("jotai"));
+var atomWithMutation = (mutation, onError, getClient = (get) => get(clientAtom)) => {
+  return (0, import_jotai4.atom)(null, async (get, _set, options) => {
+    const client = getClient(get);
+    try {
+      return client.mutate(__spreadProps(__spreadValues({}, options), {
+        mutation
+      }));
+    } catch (e) {
+      if (onError) {
+        onError(e);
+        return { data: void 0, errors: e };
+      }
+      throw e;
+    }
+  });
+};
+
 // src/atomsWithSubscription.ts
 function atomsWithSubscription(getArgs, getClient = (get) => get(clientAtom)) {
   return createAtoms((get) => getArgs(get), getClient, (client, args) => {
@@ -163,6 +200,7 @@ function atomsWithSubscription(getArgs, getClient = (get) => get(clientAtom)) {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  atomWithMutation,
   atomWithQuery,
   atomsWithSubscription,
   clientAtom

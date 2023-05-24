@@ -43,7 +43,7 @@
     }
   },
   "devDependencies": {
-    "@apollo/client": "3.7.1",
+    "@apollo/client": "^3.7.1",
     "@swc/core": "^1.2.114",
     "@swc/jest": "^0.2.11",
     "@testing-library/react": "^12.1.2",

@@ -97,12 +97,9 @@ var atomWithQuery = (getArgs, onError, getClient = (get) => get(clientAtom)) => 
     const args = getArgs(get);
     const client = getClient(get);
     return wrapObservable(client.watchQuery(args));
-  }, { initialValue: null });
-  return atom3((get) => {
-    const result = get(sourceAtom);
-    if (result === null) {
-      return void 0;
-    }
+  });
+  return atom3(async (get) => {
+    const result = await get(sourceAtom);
     if (result.error) {
       if (onError) {
         onError(result);

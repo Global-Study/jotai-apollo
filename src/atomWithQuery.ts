@@ -30,7 +30,7 @@ export const atomWithQuery = <
   onError?: (result: ApolloQueryResult<Data | undefined>) => void,
   getClient: (get: Getter) => ApolloClient<unknown> = (get) => get(clientAtom)
 ): WritableAtom<
-  ApolloQueryResult<Data | undefined> | undefined,
+  Promise<ApolloQueryResult<Data | undefined>>,
   [AtomWithQueryAction],
   void
 > => {
@@ -45,24 +45,17 @@ export const atomWithQuery = <
     }
   )
 
-  const sourceAtom = atomWithObservable(
-    (get) => {
-      get(refreshAtom)
-      const args = getArgs(get)
-      const client = getClient(get)
+  const sourceAtom = atomWithObservable((get) => {
+    get(refreshAtom)
+    const args = getArgs(get)
+    const client = getClient(get)
 
-      return wrapObservable(client.watchQuery(args))
-    },
-    { initialValue: null }
-  )
+    return wrapObservable(client.watchQuery(args))
+  })
 
   return atom(
-    (get) => {
-      const result = get(sourceAtom)
-
-      if (result === null) {
-        return undefined
-      }
+    async (get) => {
+      const result = await get(sourceAtom)
 
       if (result.error) {
         if (onError) {

@@ -45,8 +45,31 @@ export const atomWithQuery = <
     }
   )
 
+  /**
+   * Gets incremented when the Apollo client clears the store.
+   */
+  const storeVersionAtom = atomWithObservable(
+    (get) => {
+      get(refreshAtom)
+      const client = getClient(get)
+
+      let version = 0
+
+      return {
+        subscribe(observer: Observer<number>) {
+          return {
+            unsubscribe: client.onClearStore(async () => {
+              observer.next(++version)
+            }),
+          }
+        },
+      }
+    },
+    { initialValue: 0 }
+  )
+
   const sourceAtom = atomWithObservable((get) => {
-    get(refreshAtom)
+    get(storeVersionAtom)
     const args = getArgs(get)
     const client = getClient(get)
 

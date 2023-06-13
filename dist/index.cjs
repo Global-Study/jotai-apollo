@@ -116,8 +116,22 @@ var atomWithQuery = (getArgs, onError, getClient = (get) => get(clientAtom)) => 
       set(refreshAtom);
     }
   });
-  const sourceAtom = (0, import_utils2.atomWithObservable)((get) => {
+  const storeVersionAtom = (0, import_utils2.atomWithObservable)((get) => {
     get(refreshAtom);
+    const client = getClient(get);
+    let version = 0;
+    return {
+      subscribe(observer) {
+        return {
+          unsubscribe: client.onClearStore(async () => {
+            observer.next(++version);
+          })
+        };
+      }
+    };
+  }, { initialValue: 0 });
+  const sourceAtom = (0, import_utils2.atomWithObservable)((get) => {
+    get(storeVersionAtom);
     const args = getArgs(get);
     const client = getClient(get);
     return wrapObservable(client.watchQuery(args));

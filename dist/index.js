@@ -92,8 +92,22 @@ var atomWithQuery = (getArgs, onError, getClient = (get) => get(clientAtom)) => 
       set(refreshAtom);
     }
   });
-  const sourceAtom = atomWithObservable2((get) => {
+  const storeVersionAtom = atomWithObservable2((get) => {
     get(refreshAtom);
+    const client = getClient(get);
+    let version = 0;
+    return {
+      subscribe(observer) {
+        return {
+          unsubscribe: client.onClearStore(async () => {
+            observer.next(++version);
+          })
+        };
+      }
+    };
+  }, { initialValue: 0 });
+  const sourceAtom = atomWithObservable2((get) => {
+    get(storeVersionAtom);
     const args = getArgs(get);
     const client = getClient(get);
     return wrapObservable(client.watchQuery(args));

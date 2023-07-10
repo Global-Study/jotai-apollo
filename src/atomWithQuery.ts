@@ -1,11 +1,11 @@
 import {
   ApolloClient,
   OperationVariables,
-  QueryOptions,
   ApolloQueryResult,
   ObservableQuery,
   ApolloError,
   NetworkStatus,
+  WatchQueryOptions,
 } from '@apollo/client'
 import { atomWithObservable } from 'jotai/utils'
 import { atom, Getter, WritableAtom } from 'jotai'
@@ -16,7 +16,7 @@ import { atomWithIncrement } from './common'
 type QueryArgs<
   Variables extends object = OperationVariables,
   Data = any
-> = QueryOptions<Variables, Data>
+> = WatchQueryOptions<Variables, Data>
 
 type AtomWithQueryAction = {
   type: 'refetch'

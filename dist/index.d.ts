@@ -1,11 +1,11 @@
 import * as jotai from 'jotai';
 import { Getter, WritableAtom } from 'jotai';
 import * as _apollo_client from '@apollo/client';
-import { ApolloClient, OperationVariables, ApolloQueryResult, QueryOptions, DefaultContext, DocumentNode, MutationOptions, SubscriptionOptions, SubscriptionResult } from '@apollo/client';
+import { ApolloClient, OperationVariables, ApolloQueryResult, WatchQueryOptions, DefaultContext, DocumentNode, MutationOptions, SubscriptionOptions, SubscriptionResult } from '@apollo/client';
 
 declare const clientAtom: jotai.WritableAtom<ApolloClient<unknown>, [client: ApolloClient<unknown>], void>;
 
-declare type QueryArgs<Variables extends object = OperationVariables, Data = any> = QueryOptions<Variables, Data>;
+declare type QueryArgs<Variables extends object = OperationVariables, Data = any> = WatchQueryOptions<Variables, Data>;
 declare type AtomWithQueryAction = {
     type: 'refetch';
 };

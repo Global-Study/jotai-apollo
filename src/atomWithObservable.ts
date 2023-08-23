@@ -141,15 +141,6 @@ export function atomWithObservable<Data>(
       }
     )
 
-    resultAtom.onMount = () => {
-      return () => {
-        if (STATE.subscription) {
-          STATE.subscription.unsubscribe()
-          STATE.pending = undefined
-        }
-      }
-    }
-
     return [resultAtom, observable] as const
   })
 

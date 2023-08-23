@@ -134,14 +134,6 @@ function atomWithObservable2(getObservable, options) {
       STATE.resolve(result);
       set(latestAtom, result);
     });
-    resultAtom.onMount = () => {
-      return () => {
-        if (STATE.subscription) {
-          STATE.subscription.unsubscribe();
-          STATE.pending = void 0;
-        }
-      };
-    };
     return [resultAtom, observable];
   });
   const observableAtom = atom3((get) => {

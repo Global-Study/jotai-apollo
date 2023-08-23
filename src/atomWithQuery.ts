@@ -7,11 +7,11 @@ import {
   NetworkStatus,
   WatchQueryOptions,
 } from '@apollo/client'
-import { atomWithObservable } from 'jotai/utils'
 import { atom, Getter, WritableAtom } from 'jotai'
 
 import { clientAtom } from './clientAtom'
 import { atomWithIncrement } from './common'
+import { atomWithObservable } from './atomWithObservable'
 
 type QueryArgs<
   Variables extends object = OperationVariables,
@@ -120,14 +120,13 @@ const wrapObservable = <
     }
 
     function onError(error: unknown) {
-      const last = observableQuery.getLastResult()
+      const last = observableQuery['last']
       subscription.unsubscribe()
 
       try {
         observableQuery.resetLastResults()
         subscription = observableQuery.subscribe(onNext, onError)
       } finally {
-        // eslint-disable-next-line no-param-reassign, dot-notation
         observableQuery['last'] = last
       }
 

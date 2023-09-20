@@ -16,7 +16,8 @@ export const atomWithMutation = <
 >(
   mutation: DocumentNode,
   onError?: (error: unknown) => void,
-  getClient: (get: Getter) => ApolloClient<unknown> = (get) => get(clientAtom)
+  getClient: (get: Getter) => Promise<ApolloClient<unknown>> = (get) =>
+    get(clientAtom)
 ) => {
   return atom(
     null,
@@ -25,7 +26,7 @@ export const atomWithMutation = <
       _set,
       options: Omit<MutationOptions<Data, Variables, Context>, 'mutation'>
     ) => {
-      const client = getClient(get)
+      const client = await getClient(get)
 
       try {
         return client.mutate({

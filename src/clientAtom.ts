@@ -1,36 +1,24 @@
-import {
-  InMemoryCache,
-  ApolloClient,
-  NormalizedCacheObject,
-} from '@apollo/client'
 import { atom } from 'jotai'
+import { ApolloClient } from '@apollo/client'
 
-const DEFAULT_URL =
-  (typeof process === 'object' && process.env.JOTAI_APOLLO_DEFAULT_URL) ||
-  '/graphql'
+let client: ApolloClient<unknown> | null = null
+let resolveClient: (client: ApolloClient<unknown>) => void
+const clientPromise = new Promise<ApolloClient<unknown>>((resolve) => {
+  resolveClient = resolve
+})
 
-let defaultClient: ApolloClient<NormalizedCacheObject> | null = null
+export function initJotaiApollo(newClient: ApolloClient<unknown>) {
+  if (client !== null && client !== newClient) {
+    throw new Error(`Can setup jotai-apollo only once`)
+  }
 
-const customClientAtom = atom<ApolloClient<unknown> | null>(null)
+  client = newClient
+  resolveClient(client)
+}
 
 export const clientAtom = atom(
-  (get) => {
-    const customClient = get(customClientAtom)
-
-    if (customClient) {
-      return customClient
-    }
-
-    if (!defaultClient) {
-      defaultClient = new ApolloClient({
-        uri: DEFAULT_URL,
-        cache: new InMemoryCache(),
-      })
-    }
-
-    return defaultClient
-  },
-  (_get, set, client: ApolloClient<unknown>) => {
-    set(customClientAtom, client)
+  async () => clientPromise,
+  (_get, _set, client: ApolloClient<unknown>) => {
+    initJotaiApollo(client)
   }
 )

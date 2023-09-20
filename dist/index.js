@@ -19,28 +19,21 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 
 // src/clientAtom.ts
-import {
-  InMemoryCache,
-  ApolloClient
-} from "@apollo/client";
 import { atom } from "jotai";
-var DEFAULT_URL = typeof process === "object" && process.env.JOTAI_APOLLO_DEFAULT_URL || "/graphql";
-var defaultClient = null;
-var customClientAtom = atom(null);
-var clientAtom = atom((get) => {
-  const customClient = get(customClientAtom);
-  if (customClient) {
-    return customClient;
+var client = null;
+var resolveClient;
+var clientPromise = new Promise((resolve) => {
+  resolveClient = resolve;
+});
+function initJotaiApollo(newClient) {
+  if (client !== null && client !== newClient) {
+    throw new Error(`Can setup jotai-apollo only once`);
   }
-  if (!defaultClient) {
-    defaultClient = new ApolloClient({
-      uri: DEFAULT_URL,
-      cache: new InMemoryCache()
-    });
-  }
-  return defaultClient;
-}, (_get, set, client) => {
-  set(customClientAtom, client);
+  client = newClient;
+  resolveClient(client);
+}
+var clientAtom = atom(async () => clientPromise, (_get, _set, client2) => {
+  initJotaiApollo(client2);
 });
 
 // src/atomWithQuery.ts
@@ -55,32 +48,6 @@ import { atomWithObservable } from "jotai/utils";
 var atomWithIncrement = (initialValue) => {
   const internalAtom = atom2(initialValue);
   return atom2((get) => get(internalAtom), (_get, set) => set(internalAtom, (c) => c + 1));
-};
-var createAtoms = (getArgs, getClient, execute, handleAction) => {
-  const refreshAtom = atomWithIncrement(0);
-  const handleActionAtom = atom2(null, (get, set, action) => {
-    const client = getClient(get);
-    const refresh = () => set(refreshAtom);
-    return handleAction(action, client, refresh);
-  });
-  const sourceAtom = atomWithObservable((get) => {
-    get(refreshAtom);
-    const args = getArgs(get);
-    const client = getClient(get);
-    return execute(client, args);
-  }, { initialValue: null });
-  const statusAtom = atom2((get) => get(sourceAtom), (_get, set, action) => set(handleActionAtom, action));
-  const dataAtom = atom2((get) => {
-    const result = get(sourceAtom);
-    if (result === null) {
-      return void 0;
-    }
-    if (result.error) {
-      throw result.error;
-    }
-    return result.data;
-  }, (_get, set, action) => set(handleActionAtom, action));
-  return [dataAtom, statusAtom];
 };
 
 // src/atomWithObservable.ts
@@ -162,27 +129,30 @@ var atomWithQuery = (getArgs, onError, getClient = (get) => get(clientAtom)) => 
       set(refreshAtom);
     }
   });
-  const storeVersionAtom = atomWithObservable2((get) => {
-    get(refreshAtom);
-    const client = getClient(get);
-    let version = 0;
-    return {
-      subscribe(observer) {
-        return {
-          unsubscribe: client.onClearStore(async () => {
-            observer.next(++version);
-          })
-        };
-      }
-    };
-  }, { initialValue: 0 });
-  const sourceAtom = atomWithObservable2((get) => {
-    get(storeVersionAtom);
-    const args = getArgs(get);
-    const client = getClient(get);
-    return wrapObservable(client.watchQuery(args));
+  const wrapperAtom = atom4(async (get) => {
+    const client2 = await getClient(get);
+    const storeVersionAtom = atomWithObservable2((get2) => {
+      get2(refreshAtom);
+      let version = 0;
+      return {
+        subscribe(observer) {
+          return {
+            unsubscribe: client2.onClearStore(async () => {
+              observer.next(++version);
+            })
+          };
+        }
+      };
+    }, { initialValue: 0 });
+    const sourceAtom = atomWithObservable2((get2) => {
+      get2(storeVersionAtom);
+      const args = getArgs(get2);
+      return wrapObservable(client2.watchQuery(args));
+    });
+    return sourceAtom;
   });
   return atom4(async (get) => {
+    const sourceAtom = await get(wrapperAtom);
     const result = await get(sourceAtom);
     if (result.error) {
       if (onError) {
@@ -229,9 +199,9 @@ var wrapObservable = (observableQuery) => ({
 import { atom as atom5 } from "jotai";
 var atomWithMutation = (mutation, onError, getClient = (get) => get(clientAtom)) => {
   return atom5(null, async (get, _set, options) => {
-    const client = getClient(get);
+    const client2 = await getClient(get);
     try {
-      return client.mutate(__spreadProps(__spreadValues({}, options), {
+      return client2.mutate(__spreadProps(__spreadValues({}, options), {
         mutation
       }));
     } catch (e) {
@@ -243,22 +213,10 @@ var atomWithMutation = (mutation, onError, getClient = (get) => get(clientAtom))
     }
   });
 };
-
-// src/atomsWithSubscription.ts
-function atomsWithSubscription(getArgs, getClient = (get) => get(clientAtom)) {
-  return createAtoms((get) => getArgs(get), getClient, (client, args) => {
-    return client.subscribe(args);
-  }, (action, _client, refresh) => {
-    if (action.type === "refetch") {
-      refresh();
-      return;
-    }
-  });
-}
 export {
   atomWithMutation,
   atomWithQuery,
-  atomsWithSubscription,
-  clientAtom
+  clientAtom,
+  initJotaiApollo
 };
 //# sourceMappingURL=index.js.map

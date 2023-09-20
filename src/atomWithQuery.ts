@@ -28,7 +28,8 @@ export const atomWithQuery = <
 >(
   getArgs: (get: Getter) => QueryArgs<Variables, Data>,
   onError?: (result: ApolloQueryResult<Data | undefined>) => void,
-  getClient: (get: Getter) => ApolloClient<unknown> = (get) => get(clientAtom)
+  getClient: (get: Getter) => Promise<ApolloClient<unknown>> = (get) =>
+    get(clientAtom)
 ): WritableAtom<
   Promise<ApolloQueryResult<Data | undefined>>,
   [AtomWithQueryAction],
@@ -45,39 +46,43 @@ export const atomWithQuery = <
     }
   )
 
-  /**
-   * Gets incremented when the Apollo client clears the store.
-   */
-  const storeVersionAtom = atomWithObservable(
-    (get) => {
-      get(refreshAtom)
-      const client = getClient(get)
+  const wrapperAtom = atom(async (get) => {
+    const client = await getClient(get)
 
-      let version = 0
+    /**
+     * Gets incremented when the Apollo client clears the store.
+     */
+    const storeVersionAtom = atomWithObservable(
+      (get) => {
+        get(refreshAtom)
+        let version = 0
 
-      return {
-        subscribe(observer: Observer<number>) {
-          return {
-            unsubscribe: client.onClearStore(async () => {
-              observer.next(++version)
-            }),
-          }
-        },
-      }
-    },
-    { initialValue: 0 }
-  )
+        return {
+          subscribe(observer: Observer<number>) {
+            return {
+              unsubscribe: client.onClearStore(async () => {
+                observer.next(++version)
+              }),
+            }
+          },
+        }
+      },
+      { initialValue: 0 }
+    )
 
-  const sourceAtom = atomWithObservable((get) => {
-    get(storeVersionAtom)
-    const args = getArgs(get)
-    const client = getClient(get)
+    const sourceAtom = atomWithObservable((get) => {
+      get(storeVersionAtom)
+      const args = getArgs(get)
 
-    return wrapObservable(client.watchQuery(args))
+      return wrapObservable(client.watchQuery(args))
+    })
+
+    return sourceAtom
   })
 
   return atom(
     async (get) => {
+      const sourceAtom = await get(wrapperAtom)
       const result = await get(sourceAtom)
 
       if (result.error) {

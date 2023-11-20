@@ -44,6 +44,7 @@ type OptionsWithInitialValue<Data> = {
   initialValue: Data | (() => Data)
 }
 
+type LOADING = typeof LOADING
 const LOADING = Symbol('atomWithObservable is in loading state')
 
 export function atomWithObservable<Data>(
@@ -89,13 +90,17 @@ export function atomWithObservable<Data>(
       pending: Promise<Result> | undefined
       resolve: ((result: Result) => void) | undefined
       subscription: Subscription | undefined
+      syncResult: Result | LOADING
+      updateResult: ((res: Result) => void) | undefined
     } = {
       pending: undefined,
       resolve: undefined,
       subscription: undefined,
+      syncResult: LOADING,
+      updateResult: undefined,
     }
 
-    const initialResult: Result | typeof LOADING =
+    const initialResult: Result | LOADING =
       options && 'initialValue' in options
         ? {
             d:
@@ -105,23 +110,46 @@ export function atomWithObservable<Data>(
           }
         : LOADING
 
-    const latestAtom = atom<Result | typeof LOADING>(initialResult)
+    const latestAtom = atom<Result | LOADING>(initialResult)
 
     const resultAtom = atom<Result | Promise<Result>, [Result], void>(
       (get, { setSelf }) => {
+        // Both getting the data, and depending on it, since we exit early in sync mode.
+        // TLDR, order matters
+        const latestData = get(latestAtom)
+
+        // Used to immediately return a result in case
+        // the subscription sets its value immediately.
+        // We want to avoid calling `setSelf` synchronously.
+        let sync = true
+
+        const updateResult = (res: Result) => {
+          if (sync) {
+            STATE.syncResult = res
+            setTimeout(() => setSelf(res), 0)
+          } else {
+            setSelf(res)
+          }
+        }
+
         if (!STATE.pending) {
           STATE.pending = new Promise((resolve: (result: Result) => void) => {
             STATE.resolve = resolve
 
             STATE.subscription = observable.subscribe({
-              next: (d) => setSelf({ d }),
-              error: (e) => setSelf({ e }),
+              next: (d) => updateResult({ d }),
+              error: (e) => updateResult({ e }),
               complete: () => {},
             })
           })
         }
 
-        const latestData = get(latestAtom)
+        sync = false
+
+        if (STATE.syncResult !== LOADING) {
+          return STATE.syncResult
+        }
+
         if (latestData !== LOADING) {
           return latestData
         }

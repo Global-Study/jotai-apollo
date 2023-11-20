@@ -1,7 +1,7 @@
 import * as jotai from 'jotai';
-import { Getter, WritableAtom } from 'jotai';
+import { Getter, WritableAtom, Atom } from 'jotai';
 import * as _apollo_client from '@apollo/client';
-import { ApolloClient, OperationVariables, ApolloQueryResult, WatchQueryOptions, DefaultContext, DocumentNode, MutationOptions } from '@apollo/client';
+import { ApolloClient, OperationVariables, ApolloQueryResult, WatchQueryOptions, DefaultContext, DocumentNode, MutationOptions, StoreObject, DataProxy } from '@apollo/client';
 
 declare function initJotaiApollo(newClient: ApolloClient<unknown>): void;
 declare const clientAtom: jotai.WritableAtom<Promise<ApolloClient<unknown>>, [client: ApolloClient<unknown>], void>;
@@ -19,4 +19,12 @@ declare const atomWithMutation: <Data, Variables extends OperationVariables, Con
     init: null;
 };
 
-export { atomWithMutation, atomWithQuery, clientAtom, initJotaiApollo };
+declare type WatchFragmentArgs<Data = any> = {
+    fragment: DocumentNode;
+    fragmentName: string;
+    from: Partial<Data> | string | undefined;
+    optimistic: boolean;
+};
+declare const atomOfFragment: <Data extends StoreObject>(getArgs: (get: Getter) => WatchFragmentArgs<Data>) => Atom<DataProxy.DiffResult<Data>>;
+
+export { atomOfFragment, atomWithMutation, atomWithQuery, clientAtom, initJotaiApollo };

@@ -12,6 +12,8 @@ import { atom, Getter, WritableAtom } from 'jotai'
 import { clientAtom } from './clientAtom'
 import { atomWithIncrement } from './common'
 import { atomWithObservable } from './atomWithObservable'
+import storeVersionAtom from './storeVersionAtom'
+import { Observer } from './types'
 
 type QueryArgs<
   Variables extends object = OperationVariables,
@@ -49,30 +51,12 @@ export const atomWithQuery = <
   const wrapperAtom = atom(async (get) => {
     const client = await getClient(get)
 
-    /**
-     * Gets incremented when the Apollo client clears the store.
-     */
-    const storeVersionAtom = atomWithObservable(
-      (get) => {
-        get(refreshAtom)
-        let version = 0
-
-        return {
-          subscribe(observer: Observer<number>) {
-            return {
-              unsubscribe: client.onClearStore(async () => {
-                observer.next(++version)
-              }),
-            }
-          },
-        }
-      },
-      { initialValue: 0 }
-    )
-
     const sourceAtom = atomWithObservable((get) => {
-      get(storeVersionAtom)
       const args = getArgs(get)
+
+      // Resetting on store-version change
+      get(storeVersionAtom(client))
+      get(refreshAtom)
 
       return wrapObservable(client.watchQuery(args))
     })
@@ -97,12 +81,6 @@ export const atomWithQuery = <
     },
     (_get, set, action: AtomWithQueryAction) => set(handleActionAtom, action)
   )
-}
-
-type Observer<T> = {
-  next: (value: T) => void
-  error: (error: unknown) => void
-  complete: () => void
 }
 
 type Subscription = {

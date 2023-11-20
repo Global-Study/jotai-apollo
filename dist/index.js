@@ -70,25 +70,40 @@ function atomWithObservable2(getObservable, options) {
     const STATE = {
       pending: void 0,
       resolve: void 0,
-      subscription: void 0
+      subscription: void 0,
+      syncResult: LOADING,
+      updateResult: void 0
     };
     const initialResult = options && "initialValue" in options ? {
       d: typeof options.initialValue === "function" ? options.initialValue() : options.initialValue
     } : LOADING;
     const latestAtom = atom3(initialResult);
     const resultAtom = atom3((get2, { setSelf }) => {
+      const latestData = get2(latestAtom);
+      let sync = true;
+      const updateResult = (res) => {
+        if (sync) {
+          STATE.syncResult = res;
+          setTimeout(() => setSelf(res), 0);
+        } else {
+          setSelf(res);
+        }
+      };
       if (!STATE.pending) {
         STATE.pending = new Promise((resolve) => {
           STATE.resolve = resolve;
           STATE.subscription = observable.subscribe({
-            next: (d) => setSelf({ d }),
-            error: (e) => setSelf({ e }),
+            next: (d) => updateResult({ d }),
+            error: (e) => updateResult({ e }),
             complete: () => {
             }
           });
         });
       }
-      const latestData = get2(latestAtom);
+      sync = false;
+      if (STATE.syncResult !== LOADING) {
+        return STATE.syncResult;
+      }
       if (latestData !== LOADING) {
         return latestData;
       }
@@ -121,6 +136,24 @@ function atomWithObservable2(getObservable, options) {
   return observableAtom;
 }
 
+// src/storeVersionAtom.ts
+import { atomFamily } from "jotai/utils";
+var storeVersionAtom = atomFamily((client2) => {
+  return atomWithObservable2(() => {
+    let version = 0;
+    return {
+      subscribe(observer) {
+        return {
+          unsubscribe: client2.onClearStore(async () => {
+            observer.next(++version);
+          })
+        };
+      }
+    };
+  }, { initialValue: 0 });
+});
+var storeVersionAtom_default = storeVersionAtom;
+
 // src/atomWithQuery.ts
 var atomWithQuery = (getArgs, onError, getClient = (get) => get(clientAtom)) => {
   const refreshAtom = atomWithIncrement(0);
@@ -131,22 +164,10 @@ var atomWithQuery = (getArgs, onError, getClient = (get) => get(clientAtom)) => 
   });
   const wrapperAtom = atom4(async (get) => {
     const client2 = await getClient(get);
-    const storeVersionAtom = atomWithObservable2((get2) => {
-      get2(refreshAtom);
-      let version = 0;
-      return {
-        subscribe(observer) {
-          return {
-            unsubscribe: client2.onClearStore(async () => {
-              observer.next(++version);
-            })
-          };
-        }
-      };
-    }, { initialValue: 0 });
     const sourceAtom = atomWithObservable2((get2) => {
-      get2(storeVersionAtom);
       const args = getArgs(get2);
+      get2(storeVersionAtom_default(client2));
+      get2(refreshAtom);
       return wrapObservable(client2.watchQuery(args));
     });
     return sourceAtom;
@@ -213,7 +234,78 @@ var atomWithMutation = (mutation, onError, getClient = (get) => get(clientAtom))
     }
   });
 };
+
+// src/atomOfFragment.ts
+import { loadable } from "jotai/utils";
+import { atom as atom6 } from "jotai";
+import { getFragmentQueryDocument } from "@apollo/client/utilities/graphql/fragments";
+var DefaultDiffResult = {
+  result: void 0
+};
+var fragmentToQueryDocMemo = new Map();
+function getQueryDocForFragment(fragmentDoc, fragmentName) {
+  let queryDoc = fragmentToQueryDocMemo.get(fragmentDoc);
+  if (!queryDoc) {
+    queryDoc = getFragmentQueryDocument(fragmentDoc, fragmentName);
+    fragmentToQueryDocMemo.set(fragmentDoc, queryDoc);
+  }
+  return queryDoc;
+}
+var atomOfFragment = (getArgs) => {
+  const loadableClientAtom = loadable(clientAtom);
+  const wrapperAtom = atom6((get) => {
+    const loadableClient = get(loadableClientAtom);
+    if (loadableClient.state !== "hasData") {
+      return null;
+    }
+    const client2 = loadableClient.data;
+    const sourceAtom = atomWithObservable2((get2) => {
+      const { fragment, fragmentName, from, optimistic } = getArgs(get2);
+      get2(storeVersionAtom_default(client2));
+      const id = typeof from === "string" || !from ? from : client2.cache.identify(from);
+      return {
+        subscribe(observer) {
+          const unsubscribe = client2.cache.watch({
+            query: getQueryDocForFragment(fragment, fragmentName),
+            id,
+            callback: () => {
+              const latestData = client2.readFragment({
+                fragment,
+                fragmentName,
+                id
+              }, optimistic);
+              if (latestData) {
+                console.log("JOTAI_APOLLO");
+                console.log(JSON.stringify(latestData));
+                observer.next({ complete: true, result: latestData });
+              } else {
+                observer.next({ complete: false });
+              }
+            },
+            optimistic,
+            returnPartialData: true,
+            immediate: true
+          });
+          return {
+            unsubscribe: () => {
+              console.log(`UNSUB`);
+            }
+          };
+        }
+      };
+    }, { initialValue: DefaultDiffResult });
+    return sourceAtom;
+  });
+  return atom6((get) => {
+    const sourceAtom = get(wrapperAtom);
+    if (sourceAtom) {
+      return get(sourceAtom);
+    }
+    return DefaultDiffResult;
+  });
+};
 export {
+  atomOfFragment,
   atomWithMutation,
   atomWithQuery,
   clientAtom,

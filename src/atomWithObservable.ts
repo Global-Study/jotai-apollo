@@ -118,13 +118,10 @@ export function atomWithObservable<Data>(
         // TLDR, order matters
         const latestData = get(latestAtom)
 
-        // Used to immediately return a result in case
-        // the subscription sets its value immediately.
-        // We want to avoid calling `setSelf` synchronously.
-        let sync = true
-
         const updateResult = (res: Result) => {
-          if (sync) {
+          if (!STATE.pending) {
+            // In case the subscription sets its value immediately.
+            // We want to avoid calling `setSelf` synchronously.
             STATE.syncResult = res
             setTimeout(() => setSelf(res), 0)
           } else {
@@ -144,8 +141,6 @@ export function atomWithObservable<Data>(
           })
         }
 
-        sync = false
-
         if (STATE.syncResult !== LOADING) {
           return STATE.syncResult
         }
@@ -164,6 +159,7 @@ export function atomWithObservable<Data>(
           return
         }
 
+        STATE.syncResult = LOADING // resetting the sync result
         STATE.resolve(result)
         set(latestAtom, result)
       }

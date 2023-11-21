@@ -131,12 +131,23 @@ describe('atomWithObservable', () => {
     }, 200)
   })
 
-  it('works well after unsub', () => {
+  it('works well after handling immediate update', () => {
     const subject = new Subject<number>()
 
-    const anAtom = atomWithObservable(() => subject, { initialValue: 0 })
+    const anAtom = atomWithObservable(
+      () => {
+        return {
+          subscribe(observer: Observer<number>) {
+            observer.next(123) // sync update
 
-    expect(store.get(anAtom)).toBe(0)
+            return subject.subscribe((value) => observer.next(value))
+          },
+        }
+      },
+      { initialValue: 0 }
+    )
+
+    expect(store.get(anAtom)).toBe(123)
     subject.next(1)
     expect(store.get(anAtom)).toBe(1)
   })

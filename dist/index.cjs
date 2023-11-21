@@ -108,9 +108,8 @@ function atomWithObservable2(getObservable, options) {
     const latestAtom = (0, import_jotai3.atom)(initialResult);
     const resultAtom = (0, import_jotai3.atom)((get2, { setSelf }) => {
       const latestData = get2(latestAtom);
-      let sync = true;
       const updateResult = (res) => {
-        if (sync) {
+        if (!STATE.pending) {
           STATE.syncResult = res;
           setTimeout(() => setSelf(res), 0);
         } else {
@@ -128,7 +127,6 @@ function atomWithObservable2(getObservable, options) {
           });
         });
       }
-      sync = false;
       if (STATE.syncResult !== LOADING) {
         return STATE.syncResult;
       }
@@ -141,6 +139,7 @@ function atomWithObservable2(getObservable, options) {
         console.warn(`atomWithObservable is in an invalid state, 'resolve' is undefined`);
         return;
       }
+      STATE.syncResult = LOADING;
       STATE.resolve(result);
       set(latestAtom, result);
     });
@@ -303,8 +302,6 @@ var atomOfFragment = (getArgs) => {
                 id
               }, optimistic);
               if (latestData) {
-                console.log("JOTAI_APOLLO");
-                console.log(JSON.stringify(latestData));
                 observer.next({ complete: true, result: latestData });
               } else {
                 observer.next({ complete: false });
@@ -315,9 +312,7 @@ var atomOfFragment = (getArgs) => {
             immediate: true
           });
           return {
-            unsubscribe: () => {
-              console.log(`UNSUB`);
-            }
+            unsubscribe
           };
         }
       };

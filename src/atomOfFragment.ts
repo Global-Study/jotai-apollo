@@ -74,8 +74,6 @@ export const atomOfFragment = <Data extends StoreObject>(
                 )
 
                 if (latestData) {
-                  console.log('JOTAI_APOLLO')
-                  console.log(JSON.stringify(latestData))
                   observer.next({ complete: true, result: latestData })
                 } else {
                   observer.next({ complete: false })
@@ -87,10 +85,7 @@ export const atomOfFragment = <Data extends StoreObject>(
             })
 
             return {
-              unsubscribe: () => {
-                console.log(`UNSUB`)
-                // unsubscribe()
-              },
+              unsubscribe,
             }
           },
         }

@@ -13,7 +13,7 @@ import { clientAtom } from './clientAtom'
 import { atomWithIncrement } from './common'
 import { atomWithObservable } from './atomWithObservable'
 import storeVersionAtom from './storeVersionAtom'
-import { Observer } from './types'
+import { Observer, PromiseOrValue } from './types'
 
 type QueryArgs<
   Variables extends object = OperationVariables,
@@ -30,7 +30,7 @@ export const atomWithQuery = <
 >(
   getArgs: (get: Getter) => QueryArgs<Variables, Data>,
   onError?: (result: ApolloQueryResult<Data | undefined>) => void,
-  getClient: (get: Getter) => Promise<ApolloClient<unknown>> = (get) =>
+  getClient: (get: Getter) => PromiseOrValue<ApolloClient<unknown>> = (get) =>
     get(clientAtom)
 ): WritableAtom<
   Promise<ApolloQueryResult<Data | undefined>>,

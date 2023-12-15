@@ -3,3 +3,5 @@ export type Observer<T> = {
   error: (error: unknown) => void
   complete: () => void
 }
+
+export type PromiseOrValue<T> = Promise<T> | T

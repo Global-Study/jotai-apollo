@@ -37,26 +37,37 @@ function getQueryDocForFragment(
 export const atomOfFragment = <Data extends StoreObject>(
   getArgs: (get: Getter) => WatchFragmentArgs<Data>
 ): Atom<DataProxy.DiffResult<Data>> => {
-  const loadableClientAtom = loadable(clientAtom)
-
   const wrapperAtom = atom((get) => {
-    const loadableClient = get(loadableClientAtom)
-
+    const loadableClient = get(loadable(clientAtom))
     if (loadableClient.state !== 'hasData') {
       return null
     }
 
     const client = loadableClient.data
 
+    const { fragment, fragmentName, from, optimistic } = getArgs(get)
+    const id =
+      typeof from === 'string' || !from ? from : client.cache.identify(from)
+
+    const computeLatestResult = (): DataProxy.DiffResult<Data> => {
+      const latestData = client.readFragment<Data>(
+        {
+          fragment,
+          fragmentName,
+          id,
+        },
+        optimistic
+      )
+
+      return latestData
+        ? { complete: true, result: latestData }
+        : { complete: false }
+    }
+
     const sourceAtom = atomWithObservable(
       (get) => {
-        const { fragment, fragmentName, from, optimistic } = getArgs(get)
-
         // Resetting on store-version change
         get(storeVersionAtom(client))
-
-        const id =
-          typeof from === 'string' || !from ? from : client.cache.identify(from)
 
         return {
           subscribe(observer: Observer<DataProxy.DiffResult<Data>>) {
@@ -64,20 +75,7 @@ export const atomOfFragment = <Data extends StoreObject>(
               query: getQueryDocForFragment(fragment, fragmentName),
               id,
               callback: () => {
-                const latestData = client.readFragment<Data>(
-                  {
-                    fragment,
-                    fragmentName,
-                    id,
-                  },
-                  optimistic
-                )
-
-                if (latestData) {
-                  observer.next({ complete: true, result: latestData })
-                } else {
-                  observer.next({ complete: false })
-                }
+                observer.next(computeLatestResult())
               },
               optimistic,
               returnPartialData: true,
@@ -90,7 +88,9 @@ export const atomOfFragment = <Data extends StoreObject>(
           },
         }
       },
-      { initialValue: DefaultDiffResult as DataProxy.DiffResult<Data> }
+      {
+        initialValue: computeLatestResult(),
+      }
     )
 
     return sourceAtom

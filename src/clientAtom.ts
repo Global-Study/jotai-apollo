@@ -17,7 +17,7 @@ export function initJotaiApollo(newClient: ApolloClient<unknown>) {
 }
 
 export const clientAtom = atom(
-  async () => clientPromise,
+  () => client ?? clientPromise,
   (_get, _set, client: ApolloClient<unknown>) => {
     initJotaiApollo(client)
   }

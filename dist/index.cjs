@@ -62,7 +62,7 @@ function initJotaiApollo(newClient) {
   client = newClient;
   resolveClient(client);
 }
-var clientAtom = (0, import_jotai.atom)(async () => clientPromise, (_get, _set, client2) => {
+var clientAtom = (0, import_jotai.atom)(() => client != null ? client : clientPromise, (_get, _set, client2) => {
   initJotaiApollo(client2);
 });
 
@@ -279,33 +279,31 @@ function getQueryDocForFragment(fragmentDoc, fragmentName) {
   return queryDoc;
 }
 var atomOfFragment = (getArgs) => {
-  const loadableClientAtom = (0, import_utils3.loadable)(clientAtom);
   const wrapperAtom = (0, import_jotai6.atom)((get) => {
-    const loadableClient = get(loadableClientAtom);
+    const loadableClient = get((0, import_utils3.loadable)(clientAtom));
     if (loadableClient.state !== "hasData") {
       return null;
     }
     const client2 = loadableClient.data;
+    const { fragment, fragmentName, from, optimistic } = getArgs(get);
+    const id = typeof from === "string" || !from ? from : client2.cache.identify(from);
+    const computeLatestResult = () => {
+      const latestData = client2.readFragment({
+        fragment,
+        fragmentName,
+        id
+      }, optimistic);
+      return latestData ? { complete: true, result: latestData } : { complete: false };
+    };
     const sourceAtom = atomWithObservable2((get2) => {
-      const { fragment, fragmentName, from, optimistic } = getArgs(get2);
       get2(storeVersionAtom_default(client2));
-      const id = typeof from === "string" || !from ? from : client2.cache.identify(from);
       return {
         subscribe(observer) {
           const unsubscribe = client2.cache.watch({
             query: getQueryDocForFragment(fragment, fragmentName),
             id,
             callback: () => {
-              const latestData = client2.readFragment({
-                fragment,
-                fragmentName,
-                id
-              }, optimistic);
-              if (latestData) {
-                observer.next({ complete: true, result: latestData });
-              } else {
-                observer.next({ complete: false });
-              }
+              observer.next(computeLatestResult());
             },
             optimistic,
             returnPartialData: true,
@@ -316,7 +314,9 @@ var atomOfFragment = (getArgs) => {
           };
         }
       };
-    }, { initialValue: DefaultDiffResult });
+    }, {
+      initialValue: computeLatestResult()
+    });
     return sourceAtom;
   });
   return (0, import_jotai6.atom)((get) => {

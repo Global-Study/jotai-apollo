@@ -1,6 +1,6 @@
 {
   "name": "jotai-apollo",
-  "version": "0.1.0-6",
+  "version": "0.1.0-7",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -43,7 +43,7 @@
     }
   },
   "devDependencies": {
-    "@apollo/client": "3.8.2",
+    "@apollo/client": "3.8.7",
     "@swc/core": "^1.2.114",
     "@swc/jest": "^0.2.11",
     "@testing-library/react": "^12.1.2",

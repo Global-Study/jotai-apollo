@@ -8,6 +8,7 @@ import {
 import { Getter, atom } from 'jotai'
 
 import { clientAtom } from './clientAtom'
+import { PromiseOrValue } from './types'
 
 export const atomWithMutation = <
   Data,
@@ -16,7 +17,7 @@ export const atomWithMutation = <
 >(
   mutation: DocumentNode,
   onError?: (error: unknown) => void,
-  getClient: (get: Getter) => Promise<ApolloClient<unknown>> = (get) =>
+  getClient: (get: Getter) => PromiseOrValue<ApolloClient<unknown>> = (get) =>
     get(clientAtom)
 ) => {
   return atom(

@@ -1,7 +1,6 @@
-import { atomFamily } from 'jotai/utils'
 import { ApolloClient } from '@apollo/client'
+import { atomFamily, atomWithObservable } from 'jotai/utils'
 
-import { atomWithObservable } from './atomWithObservable'
 import type { Observer } from './types'
 
 /**
@@ -22,7 +21,7 @@ const storeVersionAtom = atomFamily((client: ApolloClient<unknown>) => {
         },
       }
     },
-    { initialValue: 0 }
+    { initialValue: 0, unstable_timeout: 10000 }
   )
 })
 

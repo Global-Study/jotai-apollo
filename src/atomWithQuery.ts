@@ -8,10 +8,10 @@ import {
   WatchQueryOptions,
 } from '@apollo/client'
 import { atom, Getter, WritableAtom } from 'jotai'
+import { atomWithObservable } from 'jotai/utils'
 
 import { clientAtom } from './clientAtom'
 import { atomWithIncrement } from './common'
-import { atomWithObservable } from './atomWithObservable'
 import storeVersionAtom from './storeVersionAtom'
 import { Observer, PromiseOrValue } from './types'
 
@@ -51,15 +51,21 @@ export const atomWithQuery = <
   const wrapperAtom = atom(async (get) => {
     const client = await getClient(get)
 
-    const sourceAtom = atomWithObservable((get) => {
-      const args = getArgs(get)
+    const sourceAtom = atomWithObservable(
+      (get) => {
+        const args = getArgs(get)
 
-      // Resetting on store-version change
-      get(storeVersionAtom(client))
-      get(refreshAtom)
+        // Resetting on store-version change
+        get(storeVersionAtom(client))
+        get(refreshAtom)
 
-      return wrapObservable(client.watchQuery(args))
-    })
+        return wrapObservable(client.watchQuery(args))
+      },
+      {
+        // If not mounted, but used anyway, the query will get unwatched after 10 seconds of inactivity
+        unstable_timeout: 10000,
+      }
+    )
 
     return sourceAtom
   })

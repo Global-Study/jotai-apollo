@@ -1,10 +1,9 @@
-import { loadable } from 'jotai/utils'
+import { loadable, atomWithObservable } from 'jotai/utils'
 import { Atom, atom, Getter } from 'jotai'
 import { DocumentNode, DataProxy, StoreObject } from '@apollo/client'
 import { getFragmentQueryDocument } from '@apollo/client/utilities/graphql/fragments'
 
 import { clientAtom } from './clientAtom'
-import { atomWithObservable } from './atomWithObservable'
 import storeVersionAtom from './storeVersionAtom'
 import { Observer } from './types'
 
@@ -90,6 +89,7 @@ export const atomOfFragment = <Data extends StoreObject>(
       },
       {
         initialValue: computeLatestResult(),
+        unstable_timeout: 10000,
       }
     )
 

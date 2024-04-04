@@ -111,7 +111,9 @@ var atomWithQuery = (getArgs, onError, getClient = (get) => get(clientAtom)) => 
       const args = getArgs(get2);
       get2(storeVersionAtom_default(client2));
       get2(refreshAtom);
-      return wrapObservable(client2.watchQuery(args));
+      return wrapObservable(client2.watchQuery(__spreadProps(__spreadValues({}, args), {
+        fetchPolicy: "cache-and-network"
+      })));
     }, {
       unstable_timeout: 1e4
     });

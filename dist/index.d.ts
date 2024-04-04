@@ -9,7 +9,7 @@ declare const clientAtom: jotai.WritableAtom<ApolloClient<unknown> | Promise<Apo
 
 declare type PromiseOrValue<T> = Promise<T> | T;
 
-declare type QueryArgs<Variables extends object = OperationVariables, Data = any> = WatchQueryOptions<Variables, Data>;
+declare type QueryArgs<Variables extends object = OperationVariables, Data = any> = Omit<WatchQueryOptions<Variables, Data>, 'fetchPolicy' | 'nextFetchPolicy'>;
 declare type AtomWithQueryAction = {
     type: 'refetch';
 };

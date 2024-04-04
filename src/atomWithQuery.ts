@@ -18,7 +18,7 @@ import { Observer, PromiseOrValue } from './types'
 type QueryArgs<
   Variables extends object = OperationVariables,
   Data = any
-> = WatchQueryOptions<Variables, Data>
+> = Omit<WatchQueryOptions<Variables, Data>, 'fetchPolicy' | 'nextFetchPolicy'>
 
 type AtomWithQueryAction = {
   type: 'refetch'
@@ -59,7 +59,13 @@ export const atomWithQuery = <
         get(storeVersionAtom(client))
         get(refreshAtom)
 
-        return wrapObservable(client.watchQuery(args))
+        return wrapObservable(
+          client.watchQuery({
+            ...args,
+            // Limiting to these settings for now, as this is the most sane behavior for atoms with query.
+            fetchPolicy: 'cache-and-network',
+          })
+        )
       },
       {
         // If not mounted, but used anyway, the query will get unwatched after 10 seconds of inactivity

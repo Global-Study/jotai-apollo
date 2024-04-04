@@ -15,7 +15,7 @@ export const atomWithMutation = <
   Variables extends OperationVariables,
   Context extends Record<string, any> = DefaultContext
 >(
-  mutation: DocumentNode,
+  mutation: MutationOptions<Data, Variables, Context>['mutation'],
   onError?: (error: unknown) => void,
   getClient: (get: Getter) => PromiseOrValue<ApolloClient<unknown>> = (get) =>
     get(clientAtom)

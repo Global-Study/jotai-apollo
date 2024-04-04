@@ -1,6 +1,6 @@
 {
   "name": "jotai-apollo",
-  "version": "0.1.0-8",
+  "version": "0.1.0-9",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

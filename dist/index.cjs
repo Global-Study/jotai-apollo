@@ -68,21 +68,13 @@ var clientAtom = (0, import_jotai.atom)(() => client != null ? client : clientPr
 
 // src/atomWithQuery.ts
 var import_client = __toModule(require("@apollo/client"));
-var import_jotai3 = __toModule(require("jotai"));
-var import_utils3 = __toModule(require("jotai/utils"));
-
-// src/common.ts
 var import_jotai2 = __toModule(require("jotai"));
-var import_utils = __toModule(require("jotai/utils"));
-var atomWithIncrement = (initialValue) => {
-  const internalAtom = (0, import_jotai2.atom)(initialValue);
-  return (0, import_jotai2.atom)((get) => get(internalAtom), (_get, set) => set(internalAtom, (c) => c + 1));
-};
+var import_utils2 = __toModule(require("jotai/utils"));
 
 // src/storeVersionAtom.ts
-var import_utils2 = __toModule(require("jotai/utils"));
-var storeVersionAtom = (0, import_utils2.atomFamily)((client2) => {
-  return (0, import_utils2.atomWithObservable)(() => {
+var import_utils = __toModule(require("jotai/utils"));
+var storeVersionAtom = (0, import_utils.atomFamily)((client2) => {
+  return (0, import_utils.atomWithObservable)(() => {
     let version = 0;
     return {
       subscribe(observer) {
@@ -99,27 +91,29 @@ var storeVersionAtom_default = storeVersionAtom;
 
 // src/atomWithQuery.ts
 var atomWithQuery = (getArgs, onError, getClient = (get) => get(clientAtom)) => {
-  const refreshAtom = atomWithIncrement(0);
-  const handleActionAtom = (0, import_jotai3.atom)(null, (_get, set, action) => {
+  const handleActionAtom = (0, import_jotai2.atom)(null, async (get, _set, action) => {
+    const client2 = await getClient(get);
+    const args = getArgs(get);
     if (action.type === "refetch") {
-      set(refreshAtom);
+      await client2.refetchQueries({
+        include: [args.query]
+      });
     }
   });
-  const wrapperAtom = (0, import_jotai3.atom)(async (get) => {
+  const wrapperAtom = (0, import_jotai2.atom)(async (get) => {
     const client2 = await getClient(get);
-    const sourceAtom = (0, import_utils3.atomWithObservable)((get2) => {
+    const sourceAtom = (0, import_utils2.atomWithObservable)((get2) => {
       const args = getArgs(get2);
       get2(storeVersionAtom_default(client2));
-      get2(refreshAtom);
       return wrapObservable(client2.watchQuery(__spreadProps(__spreadValues({}, args), {
-        fetchPolicy: "cache-and-network"
+        fetchPolicy: "cache-first"
       })));
     }, {
       unstable_timeout: 1e4
     });
     return sourceAtom;
   });
-  return (0, import_jotai3.atom)(async (get) => {
+  return (0, import_jotai2.atom)(async (get) => {
     const sourceAtom = await get(wrapperAtom);
     const result = await get(sourceAtom);
     if (result.error) {
@@ -164,9 +158,9 @@ var wrapObservable = (observableQuery) => ({
 });
 
 // src/atomWithMutation.ts
-var import_jotai4 = __toModule(require("jotai"));
+var import_jotai3 = __toModule(require("jotai"));
 var atomWithMutation = (mutation, onError, getClient = (get) => get(clientAtom)) => {
-  return (0, import_jotai4.atom)(null, async (get, _set, options) => {
+  return (0, import_jotai3.atom)(null, async (get, _set, options) => {
     const client2 = await getClient(get);
     try {
       return client2.mutate(__spreadProps(__spreadValues({}, options), {
@@ -183,8 +177,8 @@ var atomWithMutation = (mutation, onError, getClient = (get) => get(clientAtom))
 };
 
 // src/atomOfFragment.ts
-var import_utils4 = __toModule(require("jotai/utils"));
-var import_jotai5 = __toModule(require("jotai"));
+var import_utils3 = __toModule(require("jotai/utils"));
+var import_jotai4 = __toModule(require("jotai"));
 var import_fragments = __toModule(require("@apollo/client/utilities/graphql/fragments"));
 var DefaultDiffResult = {
   result: void 0
@@ -199,8 +193,8 @@ function getQueryDocForFragment(fragmentDoc, fragmentName) {
   return queryDoc;
 }
 var atomOfFragment = (getArgs) => {
-  const wrapperAtom = (0, import_jotai5.atom)((get) => {
-    const loadableClient = get((0, import_utils4.loadable)(clientAtom));
+  const wrapperAtom = (0, import_jotai4.atom)((get) => {
+    const loadableClient = get((0, import_utils3.loadable)(clientAtom));
     if (loadableClient.state !== "hasData") {
       return null;
     }
@@ -215,7 +209,7 @@ var atomOfFragment = (getArgs) => {
       }, optimistic);
       return latestData ? { complete: true, result: latestData } : { complete: false };
     };
-    const sourceAtom = (0, import_utils4.atomWithObservable)((get2) => {
+    const sourceAtom = (0, import_utils3.atomWithObservable)((get2) => {
       get2(storeVersionAtom_default(client2));
       return {
         subscribe(observer) {
@@ -240,7 +234,7 @@ var atomOfFragment = (getArgs) => {
     });
     return sourceAtom;
   });
-  return (0, import_jotai5.atom)((get) => {
+  return (0, import_jotai4.atom)((get) => {
     const sourceAtom = get(wrapperAtom);
     if (sourceAtom) {
       return get(sourceAtom);

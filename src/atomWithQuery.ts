@@ -11,7 +11,6 @@ import { atom, Getter, WritableAtom } from 'jotai'
 import { atomWithObservable } from 'jotai/utils'
 
 import { clientAtom } from './clientAtom'
-import { atomWithIncrement } from './common'
 import storeVersionAtom from './storeVersionAtom'
 import { Observer, PromiseOrValue } from './types'
 
@@ -35,15 +34,18 @@ export const atomWithQuery = <
 ): WritableAtom<
   Promise<ApolloQueryResult<Data | undefined>>,
   [AtomWithQueryAction],
-  void
+  Promise<void>
 > => {
-  const refreshAtom = atomWithIncrement(0)
-
   const handleActionAtom = atom(
     null,
-    (_get, set, action: AtomWithQueryAction) => {
+    async (get, _set, action: AtomWithQueryAction) => {
+      const client = await getClient(get)
+      const args = getArgs(get)
+
       if (action.type === 'refetch') {
-        set(refreshAtom)
+        await client.refetchQueries({
+          include: [args.query],
+        })
       }
     }
   )
@@ -57,13 +59,12 @@ export const atomWithQuery = <
 
         // Resetting on store-version change
         get(storeVersionAtom(client))
-        get(refreshAtom)
 
         return wrapObservable(
           client.watchQuery({
             ...args,
             // Limiting to these settings for now, as this is the most sane behavior for atoms with query.
-            fetchPolicy: 'cache-and-network',
+            fetchPolicy: 'cache-first',
           })
         )
       },

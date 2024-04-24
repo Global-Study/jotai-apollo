@@ -40,21 +40,13 @@ var clientAtom = atom(() => client != null ? client : clientPromise, (_get, _set
 import {
   NetworkStatus
 } from "@apollo/client";
-import { atom as atom3 } from "jotai";
-import { atomWithObservable as atomWithObservable3 } from "jotai/utils";
-
-// src/common.ts
 import { atom as atom2 } from "jotai";
-import { atomWithObservable } from "jotai/utils";
-var atomWithIncrement = (initialValue) => {
-  const internalAtom = atom2(initialValue);
-  return atom2((get) => get(internalAtom), (_get, set) => set(internalAtom, (c) => c + 1));
-};
+import { atomWithObservable as atomWithObservable2 } from "jotai/utils";
 
 // src/storeVersionAtom.ts
-import { atomFamily, atomWithObservable as atomWithObservable2 } from "jotai/utils";
+import { atomFamily, atomWithObservable } from "jotai/utils";
 var storeVersionAtom = atomFamily((client2) => {
-  return atomWithObservable2(() => {
+  return atomWithObservable(() => {
     let version = 0;
     return {
       subscribe(observer) {
@@ -71,27 +63,29 @@ var storeVersionAtom_default = storeVersionAtom;
 
 // src/atomWithQuery.ts
 var atomWithQuery = (getArgs, onError, getClient = (get) => get(clientAtom)) => {
-  const refreshAtom = atomWithIncrement(0);
-  const handleActionAtom = atom3(null, (_get, set, action) => {
+  const handleActionAtom = atom2(null, async (get, _set, action) => {
+    const client2 = await getClient(get);
+    const args = getArgs(get);
     if (action.type === "refetch") {
-      set(refreshAtom);
+      await client2.refetchQueries({
+        include: [args.query]
+      });
     }
   });
-  const wrapperAtom = atom3(async (get) => {
+  const wrapperAtom = atom2(async (get) => {
     const client2 = await getClient(get);
-    const sourceAtom = atomWithObservable3((get2) => {
+    const sourceAtom = atomWithObservable2((get2) => {
       const args = getArgs(get2);
       get2(storeVersionAtom_default(client2));
-      get2(refreshAtom);
       return wrapObservable(client2.watchQuery(__spreadProps(__spreadValues({}, args), {
-        fetchPolicy: "cache-and-network"
+        fetchPolicy: "cache-first"
       })));
     }, {
       unstable_timeout: 1e4
     });
     return sourceAtom;
   });
-  return atom3(async (get) => {
+  return atom2(async (get) => {
     const sourceAtom = await get(wrapperAtom);
     const result = await get(sourceAtom);
     if (result.error) {
@@ -136,9 +130,9 @@ var wrapObservable = (observableQuery) => ({
 });
 
 // src/atomWithMutation.ts
-import { atom as atom4 } from "jotai";
+import { atom as atom3 } from "jotai";
 var atomWithMutation = (mutation, onError, getClient = (get) => get(clientAtom)) => {
-  return atom4(null, async (get, _set, options) => {
+  return atom3(null, async (get, _set, options) => {
     const client2 = await getClient(get);
     try {
       return client2.mutate(__spreadProps(__spreadValues({}, options), {
@@ -155,8 +149,8 @@ var atomWithMutation = (mutation, onError, getClient = (get) => get(clientAtom))
 };
 
 // src/atomOfFragment.ts
-import { loadable, atomWithObservable as atomWithObservable4 } from "jotai/utils";
-import { atom as atom5 } from "jotai";
+import { loadable, atomWithObservable as atomWithObservable3 } from "jotai/utils";
+import { atom as atom4 } from "jotai";
 import { getFragmentQueryDocument } from "@apollo/client/utilities/graphql/fragments";
 var DefaultDiffResult = {
   result: void 0
@@ -171,7 +165,7 @@ function getQueryDocForFragment(fragmentDoc, fragmentName) {
   return queryDoc;
 }
 var atomOfFragment = (getArgs) => {
-  const wrapperAtom = atom5((get) => {
+  const wrapperAtom = atom4((get) => {
     const loadableClient = get(loadable(clientAtom));
     if (loadableClient.state !== "hasData") {
       return null;
@@ -187,7 +181,7 @@ var atomOfFragment = (getArgs) => {
       }, optimistic);
       return latestData ? { complete: true, result: latestData } : { complete: false };
     };
-    const sourceAtom = atomWithObservable4((get2) => {
+    const sourceAtom = atomWithObservable3((get2) => {
       get2(storeVersionAtom_default(client2));
       return {
         subscribe(observer) {
@@ -212,7 +206,7 @@ var atomOfFragment = (getArgs) => {
     });
     return sourceAtom;
   });
-  return atom5((get) => {
+  return atom4((get) => {
     const sourceAtom = get(wrapperAtom);
     if (sourceAtom) {
       return get(sourceAtom);
